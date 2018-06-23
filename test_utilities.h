@@ -3,6 +3,14 @@
 
 #include <cstdio>
 #include <cmath>
+<<<<<<< HEAD
+=======
+#include <iostream>
+
+using std::endl;
+using std::cout;
+using std::printf;
+>>>>>>> origin/master
 
 int test_number = 0;
 int tests_passed = 0;

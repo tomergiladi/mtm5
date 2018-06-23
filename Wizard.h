@@ -6,12 +6,12 @@
 #include "weapon.h"
 class Wizard : public Player {
     int range;
+    bool canAttack(const Player& player) const override;
 
-   private:
+   public:
     Wizard(const std::string& name, const Weapon& weapon, int range);
-    virtual ~Wizard() = default;
+    virtual ~Wizard() override = default;
     Wizard(const Wizard& other) = default;
     Wizard& operator=(const Wizard& other) = default;
-    bool canAttack(const Player& player) const override;
 };
 #endif

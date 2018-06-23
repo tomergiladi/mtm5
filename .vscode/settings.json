@@ -57,9 +57,13 @@
         "clocale": "cpp",
         "ctime": "cpp",
         "cwctype": "cpp",
+<<<<<<< HEAD
         "memory": "cpp",
         "string": "cpp",
         "algorithm": "cpp"
+=======
+        "memory": "cpp"
+>>>>>>> origin/master
     },
     "workbench.colorCustomizations": {
         "titleBar.activeBackground": "#ff0000"
