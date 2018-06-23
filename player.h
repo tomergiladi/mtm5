@@ -29,7 +29,7 @@ class Player {
     int life;
 
    public:
-    // player constructor, takes a given name and weapon and copies them
+    // alayer constructor, takes a given name and weapon and copies them
     // to create a player, position is initialized to 0 and its other fields
     // are initialized to 1
     explicit Player(const std::string& name, const Weapon& weapon);
