@@ -1,141 +1,179 @@
 #include "Game.h"
 #include <algorithm>
+using std::endl;
+using std::map;
+using std::ostream;
+using std::shared_ptr;
+using std::string;
 void Game::deletePlayers() {
-    for (int i = 0; i < this->currentPlayers; i++) {
+    /*for (int i = 0; i < this->currentPlayers; i++) {
         delete this->players[i];
     }
-    delete[] this->players;
+    delete[] this->players;*/
 }
-int Game::getPlayerIndex(const char* playerName) {
-    for (int i = 0; i < this->currentPlayers; i++) {
-        if ((this->players[i]->isPlayer(playerName))) {
-            return i;
-        }
-    }
-    return -1;
+Game::Game(int maxPlayers) : maxPlayers(maxPlayers), players() {
 }
-void Game::sortPlayers() const {
-    for (int i = 1; i < this->currentPlayers; i++) {
-        for (int j = i; j > 0 && *(this->players[j]) < *(this->players[j - 1]);
-             j--) {
-            std::swap(this->players[j], this->players[j - 1]);
-        }
-    }
-}
-Game::Game(int maxPlayers)
-    : maxPlayers(maxPlayers),
-      currentPlayers(0),
-      players(new Player*[maxPlayers]) {
-}
-Game::Game(const Game& game)
-    : maxPlayers(game.maxPlayers),
-      currentPlayers(game.currentPlayers),
-      players(new Player*[game.maxPlayers]) {
-    for (int i = 0; i < game.currentPlayers; i++) {
-        this->players[i] = new Player(*(game.players[i]));
-    }
-}
-Game& Game::operator=(const Game& game) {
-    if (this == &game) {
-        return *this;
-    }
-    this->deletePlayers();
-    this->currentPlayers = game.currentPlayers;
-    this->maxPlayers = game.maxPlayers;
-    this->players = new Player*[this->maxPlayers];
-    for (int i = 0; i < game.currentPlayers; i++) {
-        this->players[i] = new Player(*(game.players[i]));
-    }
-    return *this;
-}
-Game::~Game() {
-    this->deletePlayers();
-}
-GameStatus Game::addPlayer(const char* playerName,
-                           const char* weaponName,
-                           Target target,
-                           int hit_strength) {
-    if (getPlayerIndex(playerName) != -1) {
+GameStatus Game::insertPlayer(const string& playerName,
+                              shared_ptr<Player> ptr) {
+    if (this->players.find(playerName) != this->players.end()) {
         return NAME_ALREADY_EXISTS;
     }
-    if (this->currentPlayers >= this->maxPlayers) {
+    if (this->players.size() >= this->maxPlayers) {
         return GAME_FULL;
     }
-    this->players[this->currentPlayers] =
-        new Player(playerName, Weapon(weaponName, target, hit_strength));
-    this->currentPlayers++;
+    try {
+        this->players.insert(
+            std::pair<string, shared_ptr<Player>>(playerName, ptr));
+    } catch (mtm::IllegalWeapon exception) {
+        return IllegalWeapon;
+    }
     return SUCCESS;
 }
-GameStatus Game::nextLevel(const char* playerName) {
-    int index = getPlayerIndex(playerName);
-    if (index == -1) {
+GameStatus Game::addPlayer(const string& playerName,
+                           const string& weaponName,
+                           Target target,
+                           int hit_strength) {
+    if (this->players.find(playerName) != this->players.end()) {
+        return NAME_ALREADY_EXISTS;
+    }
+    if (this->players.size() >= this->maxPlayers) {
+        return GAME_FULL;
+    }
+    try {
+        this->players.insert(std::pair<string, shared_ptr<Player>>(
+            playerName,
+            new Warrior(playerName, Weapon(weaponName, target, hit_strength),
+                        false)));
+    } catch (mtm::IllegalWeapon exception) {
+        return IllegalWeapon;
+    }
+    return SUCCESS;
+}
+GameStatus Game::addWizard(const string& playerName,
+                           const string& weaponName,
+                           Target target,
+                           int hit_strength,
+                           int range) {
+    try {
+        return this->insertPlayer(
+            playerName,
+            std::make_shared<Wizard>(
+                playerName, Weapon(weaponName, target, hit_strength), range));
+    } catch (mtm::IllegalWeapon exception) {
+        return IllegalWeapon;
+    }
+    return SUCCESS;
+}
+GameStatus Game::addWarrior(const string& playerName,
+                            const string& weaponName,
+                            Target target,
+                            int hit_strength,
+                            bool rider) {
+    try {
+        return this->insertPlayer(
+            playerName,
+            std::make_shared<Warrior>(
+                playerName, Weapon(weaponName, target, hit_strength), rider));
+    } catch (mtm::IllegalWeapon exception) {
+        return IllegalWeapon;
+    }
+    return SUCCESS;
+}
+GameStatus Game::addTroll(const string& playerName,
+                          const string& weaponName,
+                          Target target,
+                          int hit_strength,
+                          int maxLife) {
+    try {
+        return this->insertPlayer(
+            playerName,
+            std::make_shared<Troll>(
+                playerName, Weapon(weaponName, target, hit_strength), maxLife));
+    } catch (mtm::IllegalWeapon exception) {
+        return IllegalWeapon;
+    }
+    return SUCCESS;
+}
+GameStatus Game::nextLevel(const string& playerName) {
+    if (this->players.find(playerName) == this->players.end()) {
         return NAME_DOES_NOT_EXIST;
     }
-    this->players[index]->nextLevel();
+    this->players[playerName]->nextLevel();
     return SUCCESS;
 }
-GameStatus Game::makeStep(const char* playerName) {
-    int index = getPlayerIndex(playerName);
-    if (index == -1) {
+GameStatus Game::makeStep(const string& playerName) {
+    if (this->players.find(playerName) == this->players.end()) {
         return NAME_DOES_NOT_EXIST;
     }
-    this->players[index]->makeStep();
+    this->players[playerName]->makeStep();
     return SUCCESS;
 }
-GameStatus Game::addLife(const char* playerName) {
-    int index = getPlayerIndex(playerName);
-    if (index == -1) {
+GameStatus Game::addLife(const string& playerName) {
+    if (this->players.find(playerName) == this->players.end()) {
         return NAME_DOES_NOT_EXIST;
     }
-    this->players[index]->addLife();
+    this->players[playerName]->addLife();
     return SUCCESS;
 }
-GameStatus Game::addStrength(const char* playerName, int strengthToAdd) {
+GameStatus Game::addStrength(const string& playerName, int strengthToAdd) {
     if (strengthToAdd < 0) {
         return INVALID_PARAM;
     }
-    int index = getPlayerIndex(playerName);
-    if (index == -1) {
+    if (this->players.find(playerName) == this->players.end()) {
         return NAME_DOES_NOT_EXIST;
     }
-    this->players[index]->addStrength(strengthToAdd);
+    this->players[playerName]->addStrength(strengthToAdd);
     return SUCCESS;
 }
-bool Game::removeAllPlayersWIthWeakWeapon(int weaponStrength) {
-    int current = 0;
-    int didRemove = false;
-    while (current != this->currentPlayers) {
-        if (this->players[current]->weaponIsWeak(weaponStrength)) {
-            delete this->players[current];
-            this->players[current] = this->players[--this->currentPlayers];
-            didRemove = true;
-        } else {
-            current++;
-        }
+class PlayerIsWeak {
+    int strength;
+
+   public:
+    explicit PlayerIsWeak(int strength) : strength(strength) {
     }
-    return didRemove;
+    bool operator()(const Player& player) {
+        ((Player&)player).makeStep();
+        return player.weaponIsWeak(strength);
+    }
+};
+bool Game::removeAllPlayersWithWeakWeapon(int weaponStrength) {
+    PlayerIsWeak playerIsWeak(weaponStrength);
+    return this->removePlayersIf(playerIsWeak);
 }
-GameStatus Game::fight(const char* playerName1, const char* playerName2) {
-    int index1 = getPlayerIndex(playerName1);
-    int index2 = getPlayerIndex(playerName2);
-    if (index1 == -1 || index2 == -1) {
-        return NAME_DOES_NOT_EXIST;
+GameStatus Game::fight(const string& playerName1, const string& playerName2) {
+    if (this->players.find(playerName1) == this->players.end() ||
+        this->players.find(playerName2) == this->players.end()) {
+        throw mtm::NameDoesNotExist();
     }
-    bool fightSuccess = this->players[index1]->fight(*(this->players[index2]));
-    if (!this->players[index1]->isAlive()) {
-        delete this->players[index1];
-        this->players[index1] = this->players[--this->currentPlayers];
+    bool fightSuccess =
+        this->players[playerName1]->fight(*(this->players[playerName2]));
+    if (!this->players[playerName1]->isAlive()) {
+        this->players.erase(playerName1);
     }
-    if (!this->players[index2]->isAlive()) {
-        delete this->players[index2];
-        this->players[index2] = this->players[--this->currentPlayers];
+    if (!this->players[playerName2]->isAlive()) {
+        this->players.erase(playerName2);
     }
     return fightSuccess ? SUCCESS : FIGHT_FAILED;
 }
-std::ostream& operator<<(std::ostream& os, const Game& game) {
-    game.sortPlayers();
-    for (int i = 0; i < game.currentPlayers; i++) {
-        os << "player " << i << ": " << *(game.players[i]) << "," << std::endl;
+template <class FCN>
+bool Game::removePlayersIf(FCN& fcn) {
+    bool result = false;
+    for (map<string, shared_ptr<Player>>::const_iterator it =
+             this->players.begin();
+         it != this->players.end(); it++) {
+        if (fcn(static_cast<const Player&>(*it->second))) {
+            it = this->players.erase(it);
+            result = true;
+        }
+    }
+    return result;
+}
+ostream& operator<<(ostream& os, const Game& game) {
+    int i = 0;
+    for (map<string, shared_ptr<Player>>::const_iterator it =
+             game.players.begin();
+         it != game.players.end(); it++, i++) {
+        os << "player " << (i) << ": " << *(it->second) << "," << endl;
     }
     return os;
 }

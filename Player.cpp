@@ -36,6 +36,7 @@ Player::Player(const std::string& name, const Weapon& weapon)
     : name(name), level(1), life(1), strength(1), weapon(weapon), position(0) {
 }
 Player::~Player() {
+    std::cout << this->name << " was destroyed" << std::endl;
 }
 void Player::nextLevel() {
     this->level++;
